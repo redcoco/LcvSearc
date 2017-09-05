@@ -29,10 +29,17 @@ class SearchSuggest(View):
 
 from elasticsearch import Elasticsearch
 client = Elasticsearch(hosts="localhost")
+import datetime
 
 class SearchView(View):
     def get(self,request):
         key_words = request.GET.get("q","")
+        page = request.GET.get("p","1")
+        try:
+            page = int(page)
+        except:
+            page=1
+        start_time = datetime.datetime.now()
         response = client.search(
             index = "jobbole",
             body={
@@ -54,7 +61,13 @@ class SearchView(View):
                 }
             }
         )
+        end_time = datetime.datetime.now()
+        last_second = (end_time-start_time).total_seconds()
         total_nums = response["hits"]["total"]
+        if (page%1)>0:
+            page_nums = int(total_nums/1 + 1)
+        else:
+            page_nums = int(total_nums/1)
         hit_list = []
         for hit in response["hits"]["hits"]:
             hit_dict={}
@@ -75,6 +88,9 @@ class SearchView(View):
 
         return render(request,"result.html",{
                 "all_hits": hit_list,
-                "key_words": key_words
-
+                "key_words": key_words,
+                "page":page,
+            "total_nums":total_nums,
+            "page_nums":page_nums,
+            "last_second":last_second
             })
